@@ -126,7 +126,7 @@ function(gnc_gtest_configure)
     find_package(Threads REQUIRED)
     set(GTEST_FOUND YES CACHE INTERNAL "Found GTest")
     if(GTEST_SHARED_LIB)
-      set(GTEST_LIB "${GTEST_MAIN_LIB};${GTEST_SHARED_LIB}" PARENT_SCOPE)
+      set(GTEST_LIB "${GTEST_SHARED_LIB}" PARENT_SCOPE)
       unset(GTEST_SRC_DIR CACHE)
     else()
       set(lib_gtest_SOURCES
