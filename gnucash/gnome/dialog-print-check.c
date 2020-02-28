@@ -2094,20 +2094,58 @@ draw_page_items(GtkPrintContext *context,
 {
     PrintCheckDialog *pcd = (PrintCheckDialog *) user_data;
     PangoFontDescription *default_desc;
+    Account *account = NULL;
     Transaction *trans;
     gnc_numeric amount;
     GNCPrintAmountInfo info;
     const gchar *date_format;
     gchar *text = NULL, buf[100];
     GSList *elem;
+    GList *node, *child;
     check_item_t *item;
     gdouble width;
     gchar *address = NULL;
+    GList *children_accounts = NULL;
 
     trans = xaccSplitGetParent(pcd->split);
     /* This was valid when the check printing dialog was instantiated. */
     g_return_if_fail(trans);
-    amount = gnc_numeric_abs(xaccSplitGetAmount(pcd->split));
+
+    /* Tally total from Bank Account */
+    for (node = xaccTransGetSplitList(trans); node; node = node->next)
+    {
+        Split *split = node->data;
+        account = xaccSplitGetAccount(split);
+
+        while (account) {
+            if (strcmp(xaccAccountGetName(account), "Assets") == 0)
+                goto found;
+            account = gnc_account_get_parent(account);
+        }
+    }
+    account = xaccSplitGetAccount(pcd->split);
+found:
+
+    children_accounts = gnc_account_get_descendants(account);
+    children_accounts = g_list_append(children_accounts, account);
+    amount = gnc_numeric_zero();
+
+    for (node = xaccTransGetSplitList(trans); node; node = node->next)
+    {
+        Split *split = node->data;
+        Account* acct = xaccSplitGetAccount(split);
+        for (child = children_accounts; child; child = child->next)
+        {
+            if (acct == child->data)
+            {
+                amount = gnc_numeric_add_fixed(amount, xaccSplitGetAmount(split));
+            }
+        }
+    }
+    g_list_free(children_accounts);
+    children_accounts = NULL;
+    amount = gnc_numeric_abs(amount);
+
 
     if (format->font)
         default_desc = pango_font_description_from_string(format->font);
